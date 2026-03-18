@@ -44,11 +44,11 @@ class EpisodeDialog(QDialog):
 
         self.description_edit = QTextEdit()
         self.description_edit.setMinimumHeight(100)
-        form.addRow("Descripción*:", self.description_edit)
+        form.addRow("Descripción:", self.description_edit)
 
         self.content_edit = HtmlEditorField()
         self.content_edit.setMinimumHeight(220)
-        form.addRow("Contenido:", self.content_edit)
+        form.addRow("Contenido*:", self.content_edit)
 
         # --- Audio ---
         audio_container = QWidget()
@@ -184,8 +184,8 @@ class EpisodeDialog(QDialog):
         missing = []
         if not self.title_edit.text().strip():
             missing.append("Título")
-        if not self.description_edit.toPlainText().strip():
-            missing.append("Descripción")
+        if not self.content_edit.toPlainText().strip():
+            missing.append("Contenido")
         if not self.audio_url_edit.text().strip() and not self._audio_path:
             missing.append("Audio (URL o archivo)")
         if missing:
