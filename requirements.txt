@@ -1,0 +1,5 @@
+PySide6
+requests
+mutagen
+sounddevice
+numpy
