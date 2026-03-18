@@ -7,7 +7,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
-## [1.0.0] — 2026-03-18
+## [0.0.1] — 2026-03-18
 
 ### Añadido
 
@@ -58,4 +58,4 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
-[1.0.0]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v1.0.0
+[0.0.1]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.1
