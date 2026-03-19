@@ -34,7 +34,7 @@
 | Módulo | Funcionalidades |
 |---|---|
 | **Episodios** | Crear, editar, eliminar, cambiar estado (borrador ↔ publicado), filtrar |
-| **Audio** | Grabación en directo desde micrófono (WAV → MP3 vía ffmpeg), reproductor integrado, subida de archivo o URL remota |
+| **Audio** | Grabación en directo desde micrófono (WAV → MP3 vía ffmpeg), selector de dispositivo de entrada, vúmetro LED en tiempo real, reproductor integrado, subida de archivo o URL remota |
 | **Editor HTML** | Editor de código + vista previa en tiempo real, barra de herramientas con atajos |
 | **Podcast** | Edición de todos los metadatos: título, descripción, autor, categoría, imagen, iTunes... |
 | **Páginas** | Gestión de páginas estáticas con contenido HTML completo y orden en menú |
@@ -99,7 +99,7 @@ python main.py
 ./build_deb.sh
 
 # Instalar
-sudo apt install ./easypodcast-manager_1.0.0_amd64.deb
+sudo apt install ./easypodcast-manager_0.0.2_amd64.deb
 
 # Desinstalar
 sudo apt remove easypodcast-manager

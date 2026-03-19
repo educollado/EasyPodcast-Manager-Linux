@@ -7,6 +7,17 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [0.0.2] — 2026-03-19
+
+### Añadido
+
+#### Audio
+- Selector de dispositivo de entrada en el diálogo de grabación: filtra los dispositivos ALSA virtuales y selecciona automáticamente el primer hardware real (`hw:`)
+- Vúmetro LED segmentado en tiempo real durante la grabación: 20 segmentos con colores verde / naranja / rojo según el nivel
+- Suavizado del vúmetro con ataque rápido y caída lenta (interpolación exponencial a ~25 fps)
+
+---
+
 ## [0.0.1] — 2026-03-18
 
 ### Añadido
@@ -58,4 +69,5 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+[0.0.2]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.2
 [0.0.1]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.1
