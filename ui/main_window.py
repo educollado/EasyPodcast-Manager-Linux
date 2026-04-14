@@ -113,9 +113,9 @@ class MainWindow(QMainWindow):
             try:
                 data = self.api.get_system_version()
                 current = data.get("current_version", "?")
-                version_text = f"<br>Versión: {current}"
+                version_text = f"<br>Versión del servidor: {current}"
             except Exception:
-                version_text = "<br>Versión: ?"
+                version_text = "<br>Versión del servidor: ?"
 
         label = QLabel(
             "<b style='font-size:15px;'>EasyPodcast Manager</b><br><br>"
@@ -123,6 +123,7 @@ class MainWindow(QMainWindow):
             "Gestiona tu podcast desde el escritorio.<br><br>"
             "Software libre — "
             "<a href='https://www.easypodcast.eu'>https://www.easypodcast.eu</a>"
+            f"<br>Versión del cliente: 0.0.4"
             f"{version_text}"
         )
         label.setOpenExternalLinks(True)
