@@ -99,7 +99,7 @@ python main.py
 ./build_deb.sh
 
 # Instalar
-sudo apt install ./easypodcast-manager_0.0.2_amd64.deb
+sudo apt install ./easypodcast-manager_0.0.3_amd64.deb
 
 # Desinstalar
 sudo apt remove easypodcast-manager

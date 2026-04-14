@@ -7,6 +7,18 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [0.0.3] — 2026-04-14
+
+### Añadido
+
+#### Episodios
+- Nuevo estado **`scheduled`** (programado): permite fijar una fecha futura de publicación en formato ISO 8601
+- Filtro por estado `scheduled` en la lista de episodios
+- La etiqueta «Fecha programada» se marca como obligatoria en el formulario al seleccionar el estado programado
+- El botón «Publicar/Borrador» ahora también cancela la programación (pasa de `scheduled` a `draft`)
+
+---
+
 ## [0.0.2] — 2026-03-19
 
 ### Añadido
@@ -69,5 +81,6 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+[0.0.3]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.3
 [0.0.2]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.2
 [0.0.1]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.1

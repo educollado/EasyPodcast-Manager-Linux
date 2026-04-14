@@ -109,12 +109,14 @@ class EpisodeDialog(QDialog):
         form.addRow("Tipo:", self.episode_type_combo)
 
         self.status_combo = QComboBox()
-        self.status_combo.addItems(["draft", "published"])
+        self.status_combo.addItems(["draft", "published", "scheduled"])
+        self.status_combo.currentTextChanged.connect(self._on_status_changed)
         form.addRow("Estado:", self.status_combo)
 
+        self.pub_date_label = QLabel("Fecha publicación:")
         self.published_at_edit = QLineEdit()
         self.published_at_edit.setPlaceholderText("YYYY-MM-DD HH:MM:SS")
-        form.addRow("Fecha publicación:", self.published_at_edit)
+        form.addRow(self.pub_date_label, self.published_at_edit)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
@@ -122,6 +124,12 @@ class EpisodeDialog(QDialog):
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         outer.addWidget(buttons)
+
+    def _on_status_changed(self, status):
+        if status == "scheduled":
+            self.pub_date_label.setText("Fecha programada*:")
+        else:
+            self.pub_date_label.setText("Fecha publicación:")
 
     def _record_audio(self):
         dlg = RecorderDialog(self)
@@ -188,6 +196,8 @@ class EpisodeDialog(QDialog):
             missing.append("Contenido")
         if not self.audio_url_edit.text().strip() and not self._audio_path:
             missing.append("Audio (URL o archivo)")
+        if self.status_combo.currentText() == "scheduled" and not self.published_at_edit.text().strip():
+            missing.append("Fecha programada (obligatoria al programar)")
         if missing:
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(
@@ -237,7 +247,7 @@ class EpisodeDialog(QDialog):
             "duration": self.duration_edit.text().strip(),
             "episode_type": self.episode_type_combo.currentText(),
             "status": self.status_combo.currentText(),
-            "published_at": self.published_at_edit.text().strip(),
+            "pub_date": self.published_at_edit.text().strip(),
         }
         season = self.season_edit.text().strip()
         if season.isdigit():

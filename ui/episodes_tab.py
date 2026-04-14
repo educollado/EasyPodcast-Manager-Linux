@@ -31,7 +31,7 @@ class EpisodesTab(QWidget):
         toolbar = QHBoxLayout()
         toolbar.addWidget(QLabel("Filtrar:"))
         self.filter_combo = QComboBox()
-        self.filter_combo.addItems(["Todos", "published", "draft"])
+        self.filter_combo.addItems(["Todos", "published", "scheduled", "draft"])
         self.filter_combo.currentIndexChanged.connect(self.refresh)
         toolbar.addWidget(self.filter_combo)
         toolbar.addStretch()
@@ -147,7 +147,7 @@ class EpisodesTab(QWidget):
         if not ep:
             QMessageBox.information(self, "Sin selección", "Selecciona un episodio primero.")
             return
-        new_status = "draft" if ep.get("status") == "published" else "published"
+        new_status = "draft" if ep.get("status") in ("published", "scheduled") else "published"
         try:
             self.api.update_episode(ep["id"], {"status": new_status})
             self.refresh()

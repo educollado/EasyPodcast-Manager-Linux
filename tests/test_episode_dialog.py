@@ -74,7 +74,7 @@ class TestNewEpisodeDialog:
 class TestEpisodeValidation:
     def _fill_valid(self, dialog):
         dialog.title_edit.setText("Título válido")
-        dialog.description_edit.setPlainText("Descripción válida")
+        dialog.content_edit.setPlainText("Contenido válido")
         dialog.audio_url_edit.setText("https://example.com/audio.mp3")
 
     def test_warning_when_title_empty(self, dialog):
@@ -106,7 +106,7 @@ class TestEpisodeValidation:
 
     def test_no_warning_with_audio_file(self, dialog):
         dialog.title_edit.setText("Title")
-        dialog.description_edit.setPlainText("Desc")
+        dialog.content_edit.setPlainText("Contenido")
         dialog._audio_path = "/tmp/audio.mp3"
         with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
             dialog._on_accept()
@@ -118,7 +118,7 @@ class TestEpisodeValidation:
             dialog._on_accept()
             call_args = str(mock_warn.call_args)
             assert "Título" in call_args
-            assert "Descripción" in call_args
+            assert "Contenido" in call_args
             assert "Audio" in call_args
 
 
@@ -221,6 +221,59 @@ class TestEpisodeGetData:
 
     def test_audio_url_included(self, edit_dialog):
         assert "audio_url" in edit_dialog.get_data()
+
+    def test_pub_date_key_in_get_data(self, qapp):
+        from ui.episode_dialog import EpisodeDialog
+        ep = {**FULL_EPISODE, "pub_date": "2024-01-15 10:00:00"}
+        dlg = EpisodeDialog(episode=ep)
+        assert "pub_date" in dlg.get_data()
+        assert "published_at" not in dlg.get_data()
+
+
+# ---------------------------------------------------------------------------
+# Estado scheduled
+# ---------------------------------------------------------------------------
+
+class TestScheduledEpisode:
+    def test_scheduled_in_status_options(self, dialog):
+        items = [dialog.status_combo.itemText(i) for i in range(dialog.status_combo.count())]
+        assert "scheduled" in items
+
+    def test_label_changes_when_scheduled(self, dialog):
+        dialog.status_combo.setCurrentText("scheduled")
+        assert "*" in dialog.pub_date_label.text()
+
+    def test_label_restored_when_not_scheduled(self, dialog):
+        dialog.status_combo.setCurrentText("scheduled")
+        dialog.status_combo.setCurrentText("draft")
+        assert "*" not in dialog.pub_date_label.text()
+
+    def test_warning_when_scheduled_without_pub_date(self, dialog):
+        dialog.title_edit.setText("Título")
+        dialog.content_edit.setPlainText("Contenido")
+        dialog.audio_url_edit.setText("https://example.com/a.mp3")
+        dialog.status_combo.setCurrentText("scheduled")
+        with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
+            dialog._on_accept()
+            mock_warn.assert_called_once()
+            assert "programada" in str(mock_warn.call_args).lower()
+
+    def test_no_warning_when_scheduled_with_pub_date(self, dialog):
+        dialog.title_edit.setText("Título")
+        dialog.content_edit.setPlainText("Contenido")
+        dialog.audio_url_edit.setText("https://example.com/a.mp3")
+        dialog.status_combo.setCurrentText("scheduled")
+        dialog.published_at_edit.setText("2025-06-01T10:00:00")
+        with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
+            dialog._on_accept()
+            mock_warn.assert_not_called()
+
+    def test_scheduled_episode_populates_status(self, qapp):
+        from ui.episode_dialog import EpisodeDialog
+        ep = {"title": "X", "content": "Y", "status": "scheduled", "pub_date": "2025-06-01T10:00:00"}
+        dlg = EpisodeDialog(episode=ep)
+        assert dlg.status_combo.currentText() == "scheduled"
+        assert "2025-06-01" in dlg.published_at_edit.text()
 
 
 # ---------------------------------------------------------------------------
