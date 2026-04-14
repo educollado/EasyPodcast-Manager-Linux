@@ -6,6 +6,7 @@
 [![PySide6](https://img.shields.io/badge/UI-PySide6%20%2F%20Qt6-41cd52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-153%20passing-brightgreen)](#tests)
+[![Version](https://img.shields.io/badge/version-0.0.4-blue)](https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.4)
 
 ---
 

@@ -7,6 +7,15 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [0.0.4] — 2026-04-14
+
+### Añadido
+
+#### Interfaz
+- Diálogo "Acerca de" ahora muestra la versión del cliente (0.0.4) y la versión del servidor obtenida de la API
+
+---
+
 ## [0.0.3] — 2026-04-14
 
 ### Añadido
@@ -81,6 +90,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+[0.0.4]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.4
 [0.0.3]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.3
 [0.0.2]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.2
 [0.0.1]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.1
