@@ -108,12 +108,22 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(dlg)
         layout.setSpacing(12)
 
+        version_text = ""
+        if self.api:
+            try:
+                data = self.api.get_system_version()
+                current = data.get("current_version", "?")
+                version_text = f"<br>Versión: {current}"
+            except Exception:
+                version_text = "<br>Versión: ?"
+
         label = QLabel(
             "<b style='font-size:15px;'>EasyPodcast Manager</b><br><br>"
             "Cliente de escritorio para KDE/Linux.<br>"
             "Gestiona tu podcast desde el escritorio.<br><br>"
             "Software libre — "
             "<a href='https://www.easypodcast.eu'>https://www.easypodcast.eu</a>"
+            f"{version_text}"
         )
         label.setOpenExternalLinks(True)
         label.setWordWrap(True)
