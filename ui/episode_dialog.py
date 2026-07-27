@@ -4,6 +4,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QPushButton, QFileDialog
 )
 import os
+import mimetypes
+import requests
 from PySide6.QtCore import Qt
 from .image_preview import ImagePreviewField
 from .audio_player import AudioPlayerField
@@ -39,16 +41,14 @@ class EpisodeDialog(QDialog):
         self.title_edit = QLineEdit()
         form.addRow("Título*:", self.title_edit)
 
-        self.slug_edit = QLineEdit()
-        form.addRow("Slug:", self.slug_edit)
-
         self.description_edit = QTextEdit()
         self.description_edit.setMinimumHeight(100)
         form.addRow("Descripción:", self.description_edit)
 
+        self.content_label = QLabel("Contenido:")
         self.content_edit = HtmlEditorField()
         self.content_edit.setMinimumHeight(220)
-        form.addRow("Contenido*:", self.content_edit)
+        form.addRow(self.content_label, self.content_edit)
 
         # --- Audio ---
         audio_container = QWidget()
@@ -71,7 +71,23 @@ class EpisodeDialog(QDialog):
         audio_file_row.addWidget(self.audio_file_label, 1)
         audio_layout.addLayout(audio_file_row)
 
-        form.addRow("Audio:", audio_container)
+        self.audio_label = QLabel("Audio:")
+        form.addRow(self.audio_label, audio_container)
+
+        audio_size_container = QWidget()
+        audio_size_layout = QHBoxLayout(audio_size_container)
+        audio_size_layout.setContentsMargins(0, 0, 0, 0)
+        self.audio_size_edit = QLineEdit()
+        self.audio_size_edit.setPlaceholderText("Obligatorio para publicar desde una URL remota")
+        audio_size_layout.addWidget(self.audio_size_edit)
+        self.btn_probe_audio = QPushButton("Detectar desde URL")
+        self.btn_probe_audio.clicked.connect(self._probe_remote_audio)
+        audio_size_layout.addWidget(self.btn_probe_audio)
+        form.addRow("Tamaño del audio (bytes):", audio_size_container)
+
+        self.audio_mime_edit = QLineEdit("audio/mpeg")
+        self.audio_mime_edit.setPlaceholderText("audio/mpeg")
+        form.addRow("Tipo MIME del audio:", self.audio_mime_edit)
 
         # --- Imagen ---
         image_container = QWidget()
@@ -124,8 +140,12 @@ class EpisodeDialog(QDialog):
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         outer.addWidget(buttons)
+        self._on_status_changed(self.status_combo.currentText())
 
     def _on_status_changed(self, status):
+        required = status != "draft"
+        self.content_label.setText("Contenido*:" if required else "Contenido:")
+        self.audio_label.setText("Audio*:" if required else "Audio:")
         if status == "scheduled":
             self.pub_date_label.setText("Fecha programada*:")
         else:
@@ -153,6 +173,14 @@ class EpisodeDialog(QDialog):
             self._fill_duration(path)
 
     def _fill_duration(self, path):
+        try:
+            self.audio_size_edit.setText(str(os.path.getsize(path)))
+            self.audio_mime_edit.setText(
+                mimetypes.guess_type(path)[0] or "audio/mpeg"
+            )
+        except OSError:
+            pass
+
         total = None
         try:
             from mutagen import File as MutagenFile
@@ -178,6 +206,51 @@ class EpisodeDialog(QDialog):
             m, s = divmod(rem, 60)
             self.duration_edit.setText(f"{h:02d}:{m:02d}:{s:02d}")
 
+    def _probe_remote_audio(self):
+        url = self.audio_url_edit.text().strip()
+        if not url:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self, "URL necesaria", "Introduce primero la URL remota del audio."
+            )
+            return
+
+        response = None
+        try:
+            response = requests.head(url, allow_redirects=True, timeout=10)
+            if response.status_code == 405 or not response.headers.get("Content-Length"):
+                response.close()
+                response = requests.get(
+                    url, allow_redirects=True, timeout=10, stream=True
+                )
+            response.raise_for_status()
+            size = response.headers.get("Content-Length", "")
+            mime = response.headers.get("Content-Type", "").split(";", 1)[0].strip()
+        except requests.RequestException as exc:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "No se pudo consultar el audio",
+                f"No se pudieron obtener los metadatos de la URL:\n{exc}",
+            )
+            return
+        finally:
+            if response is not None:
+                response.close()
+
+        if size.isdigit() and int(size) > 0:
+            self.audio_size_edit.setText(size)
+        if mime:
+            self.audio_mime_edit.setText(mime)
+        if not size.isdigit() or int(size) <= 0:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "Tamaño no disponible",
+                "El servidor remoto no indicó el tamaño del audio. "
+                "Introdúcelo manualmente en bytes.",
+            )
+
     def _browse_image(self):
         path, _ = QFileDialog.getOpenFileName(
             self, "Seleccionar imagen",
@@ -190,13 +263,19 @@ class EpisodeDialog(QDialog):
 
     def _on_accept(self):
         missing = []
+        status = self.status_combo.currentText()
         if not self.title_edit.text().strip():
             missing.append("Título")
-        if not self.content_edit.toPlainText().strip():
-            missing.append("Contenido")
-        if not self.audio_url_edit.text().strip() and not self._audio_path:
-            missing.append("Audio (URL o archivo)")
-        if self.status_combo.currentText() == "scheduled" and not self.published_at_edit.text().strip():
+        if status != "draft":
+            if not self.content_edit.toPlainText().strip():
+                missing.append("Contenido")
+            if not self.audio_url_edit.text().strip() and not self._audio_path:
+                missing.append("Audio (URL o archivo)")
+            size = self.audio_size_edit.text().strip()
+            if self.audio_url_edit.text().strip() and not self._audio_path:
+                if not size.isdigit() or int(size) <= 0:
+                    missing.append("Tamaño del audio en bytes")
+        if status == "scheduled" and not self.published_at_edit.text().strip():
             missing.append("Fecha programada (obligatoria al programar)")
         if missing:
             from PySide6.QtWidgets import QMessageBox
@@ -215,10 +294,11 @@ class EpisodeDialog(QDialog):
 
     def _populate(self, episode):
         self.title_edit.setText(episode.get("title", ""))
-        self.slug_edit.setText(episode.get("slug", ""))
         self.description_edit.setPlainText(episode.get("description", ""))
         self.content_edit.setPlainText(episode.get("content", ""))
         self.audio_url_edit.setText(episode.get("audio_url", ""))
+        self.audio_size_edit.setText(str(episode.get("audio_size_bytes", "") or ""))
+        self.audio_mime_edit.setText(str(episode.get("audio_mime_type", "") or "audio/mpeg"))
         self.image_url_edit.setText(episode.get("image_url", ""))
         self.duration_edit.setText(str(episode.get("duration", "")))
         self.season_edit.setText(str(episode.get("season_number", "") or ""))
@@ -239,10 +319,10 @@ class EpisodeDialog(QDialog):
     def get_data(self):
         data = {
             "title": self.title_edit.text().strip(),
-            "slug": self.slug_edit.text().strip(),
             "description": self.description_edit.toPlainText().strip(),
             "content": self.content_edit.toPlainText().strip(),
             "audio_url": self.audio_url_edit.text().strip(),
+            "audio_mime_type": self.audio_mime_edit.text().strip(),
             "image_url": self.image_url_edit.text().strip(),
             "duration": self.duration_edit.text().strip(),
             "episode_type": self.episode_type_combo.currentText(),
@@ -255,6 +335,9 @@ class EpisodeDialog(QDialog):
         ep_num = self.episode_num_edit.text().strip()
         if ep_num.isdigit():
             data["episode_number"] = int(ep_num)
+        audio_size = self.audio_size_edit.text().strip()
+        if audio_size.isdigit():
+            data["audio_size_bytes"] = int(audio_size)
         return {k: v for k, v in data.items() if v != ""}
 
     def get_files(self):

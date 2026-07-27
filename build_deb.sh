@@ -6,7 +6,7 @@ set -euo pipefail
 # Configuración
 # ---------------------------------------------------------------------------
 PKG_NAME="easypodcast-manager"
-VERSION="0.0.3"
+VERSION="0.0.5"
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 DEB_FILE="${PKG_NAME}_${VERSION}_${ARCH}.deb"
 
@@ -30,7 +30,7 @@ mkdir -p "$SHARE_DIR/icons/hicolor/256x256/apps"
 # ---------------------------------------------------------------------------
 echo "==> Copiando archivos de la aplicación"
 
-for f in main.py config.py api.py requirements.txt; do
+for f in main.py config.py api.py client_version.py requirements.txt; do
     cp "$SRC_DIR/$f" "$APP_DIR/$f"
 done
 

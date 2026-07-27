@@ -2,7 +2,6 @@ import os
 import wave
 import tempfile
 import numpy as np
-import sounddevice as sd
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QDialogButtonBox,
@@ -21,8 +20,14 @@ _SKIP_DEVICES = {
 
 def _list_input_devices():
     """Devuelve lista de (device_index, label) con dispositivos de entrada útiles."""
+    try:
+        import sounddevice as sd
+        devices = sd.query_devices()
+    except Exception:
+        return []
+
     result = []
-    for i, d in enumerate(sd.query_devices()):
+    for i, d in enumerate(devices):
         if d["max_input_channels"] > 0 and d["name"].strip() not in _SKIP_DEVICES:
             result.append((i, d["name"]))
     return result
@@ -106,6 +111,7 @@ class _RecordThread(QThread):
         self._chunks = []
         self._running = True
         try:
+            import sounddevice as sd
             with sd.InputStream(samplerate=self.SAMPLE_RATE, channels=1,
                                 dtype="float32", device=self._device,
                                 callback=self._callback):

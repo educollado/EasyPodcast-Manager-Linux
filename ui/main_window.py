@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt
 
 import config
 from api import EasyPodcastAPI
+from client_version import CLIENT_VERSION
 from .episodes_tab import EpisodesTab
 from .podcast_tab import PodcastTab
 from .pages_tab import PagesTab
@@ -123,7 +124,7 @@ class MainWindow(QMainWindow):
             "Gestiona tu podcast desde el escritorio.<br><br>"
             "Software libre — "
             "<a href='https://www.easypodcast.eu'>https://www.easypodcast.eu</a>"
-            f"<br>Versión del cliente: 0.0.4"
+            f"<br>Versión del cliente: {CLIENT_VERSION}"
             f"{version_text}"
         )
         label.setOpenExternalLinks(True)

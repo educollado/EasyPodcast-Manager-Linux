@@ -1,6 +1,6 @@
 """Tests para ToolsTab — formateo de valores y renderizado de estadísticas."""
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 @pytest.fixture
@@ -187,6 +187,48 @@ class TestShowStatsFull:
 
 
 # ---------------------------------------------------------------------------
+# _show_stats — descargas y reproducciones de EasyPodcast 1.8.11+
+# ---------------------------------------------------------------------------
+
+class TestShowStatsDownloads:
+    DATA = {
+        "downloads": {
+            "daily": {
+                "items": [
+                    {"action_type": "download"},
+                    {"action_type": "download"},
+                    {"action_type": "play"},
+                ],
+                "total": 3,
+            },
+            "summary": {
+                "items": [
+                    {"episode_title": "Uno", "total_downloads": 7},
+                    {"episode_title": "Dos", "total_downloads": 5},
+                ],
+                "total": 2,
+            },
+        }
+    }
+
+    def test_downloads_section_rendered(self, tab):
+        tab._show_stats(self.DATA)
+        assert "Descargas y reproducciones" in tab.output.toHtml()
+
+    def test_event_counts_rendered(self, tab):
+        tab._show_stats(self.DATA)
+        html = tab.output.toHtml()
+        assert "Eventos registrados" in html
+        assert "Reproducciones recientes" in html
+
+    def test_accumulated_downloads_rendered(self, tab):
+        tab._show_stats(self.DATA)
+        html = tab.output.toHtml()
+        assert "Descargas acumuladas" in html
+        assert "12" in html
+
+
+# ---------------------------------------------------------------------------
 # _show_stats — fallback para diccionarios planos
 # ---------------------------------------------------------------------------
 
@@ -203,3 +245,23 @@ class TestShowStatsFallback:
         tab._show_stats({"my_custom_key": "hello"})
         html = tab.output.toHtml()
         assert "hello" in html
+
+
+class TestServerUpdate:
+    def test_admin_scope_message_on_403(self, tab):
+        from api import APIError
+        from PySide6.QtWidgets import QMessageBox
+
+        tab.api.system_update.side_effect = APIError(
+            "HTTP 403: Alcance insuficiente", status_code=403
+        )
+        with (
+            patch(
+                "PySide6.QtWidgets.QMessageBox.warning",
+                return_value=QMessageBox.StandardButton.Yes,
+            ),
+            patch("PySide6.QtWidgets.QMessageBox.critical") as critical,
+        ):
+            tab._on_do_update()
+
+        assert "admin" in str(critical.call_args)

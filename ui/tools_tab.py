@@ -169,6 +169,50 @@ class ToolsTab(QWidget):
             if size is not None:
                 html += self._card("Tamaño de caché", self._fmt_value("size_bytes", size))
 
+        # --- Sección Descargas y reproducciones ---
+        downloads = data.get("downloads")
+        if isinstance(downloads, dict):
+            daily = downloads.get("daily", {})
+            summary = downloads.get("summary", {})
+            daily_items = daily.get("items", []) if isinstance(daily, dict) else []
+            summary_items = summary.get("items", []) if isinstance(summary, dict) else []
+
+            event_total = daily.get("total", len(daily_items)) if isinstance(daily, dict) else 0
+            downloads_total = sum(
+                1 for item in daily_items
+                if item.get("action_type", "download") == "download"
+            )
+            plays_total = sum(
+                1 for item in daily_items
+                if item.get("action_type") == "play"
+            )
+            tracked_episodes = (
+                summary.get("total", len(summary_items))
+                if isinstance(summary, dict) else 0
+            )
+            all_time_downloads = sum(
+                int(item.get("total_downloads") or 0) for item in summary_items
+            )
+
+            html += self._section_header("Descargas y reproducciones")
+            html += self._card(
+                "Eventos registrados", self._fmt_value("events", event_total)
+            )
+            html += self._card(
+                "Descargas recientes", self._fmt_value("downloads", downloads_total)
+            )
+            html += self._card(
+                "Reproducciones recientes", self._fmt_value("plays", plays_total)
+            )
+            html += self._card(
+                "Episodios con actividad",
+                self._fmt_value("episodes", tracked_episodes),
+            )
+            html += self._card(
+                "Descargas acumuladas",
+                self._fmt_value("downloads", all_time_downloads),
+            )
+
         # --- Fallback: claves simples de primer nivel ---
         simple_keys = {k: v for k, v in data.items()
                        if not isinstance(v, dict) and k not in ("episodes", "cache")}
@@ -305,4 +349,11 @@ class ToolsTab(QWidget):
             self.version_label.setStyleSheet("color: #5f544d; padding-left: 8px;")
             self.btn_do_update.setEnabled(False)
         except APIError as e:
-            QMessageBox.critical(self, "Error", f"No se pudo actualizar:\n{e}")
+            if e.status_code == 403:
+                detail = (
+                    "El servidor rechazó la actualización. Esta operación requiere "
+                    "un token de API con alcance «admin»."
+                )
+            else:
+                detail = f"No se pudo actualizar:\n{e}"
+            QMessageBox.critical(self, "Error", detail)

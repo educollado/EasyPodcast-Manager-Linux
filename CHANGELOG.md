@@ -7,6 +7,37 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [0.0.5] — 2026-07-27
+
+### Cambiado
+
+- Compatibilidad actualizada con EasyPodcast 1.9.5
+- Los borradores de episodios solo requieren título; contenido y audio se
+  validan al publicar o programar
+- Los listados de episodios y páginas recorren automáticamente toda la
+  paginación de la API
+- Las páginas usan el campo correcto `sort_order` y admiten jerarquía mediante
+  `parent_id`
+- Los audios remotos admiten tamaño en bytes y tipo MIME, requeridos por el
+  servidor al publicar
+- Se elimina el campo de slug de episodios, ya que EasyPodcast genera y
+  conserva automáticamente la URL pública
+- Las estadísticas muestran descargas y reproducciones
+- La actualización del servidor explica cuándo se necesita un token con
+  alcance `admin`
+- La versión del cliente se centraliza en `client_version.py`
+- Las dependencias declaran rangos compatibles para evitar saltos de versión
+  principal inesperados
+
+### Corregido
+
+- Corregido un error de sintaxis en `api.py`
+- El reproductor y el grabador inicializan los subsistemas de audio solo al
+  utilizarlos, evitando bloqueos al abrir formularios sin PipeWire/ALSA
+- Los ficheros usados en peticiones multipart se cierran correctamente
+- README y paquete Debian actualizados a la versión 0.0.5
+- Suite ampliada a 184 tests
+
 ## [0.0.4] — 2026-04-14
 
 ### Añadido
@@ -90,6 +121,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+[0.0.5]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.5
 [0.0.4]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.4
 [0.0.3]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.3
 [0.0.2]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.2

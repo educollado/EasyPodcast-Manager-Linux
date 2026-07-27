@@ -119,8 +119,9 @@ class TestHandle:
 
     def test_http_error_uses_error_key(self):
         api = make_api()
-        with pytest.raises(APIError, match="Forbidden"):
+        with pytest.raises(APIError, match="Forbidden") as exc:
             api._handle(mock_error(403, json_data={"error": "Forbidden"}))
+        assert exc.value.status_code == 403
 
     def test_http_error_falls_back_to_text(self):
         api = make_api()
@@ -146,7 +147,8 @@ class TestEpisodes:
         api.session.get = MagicMock(return_value=mock_ok(episodes))
         result = api.get_episodes()
         api.session.get.assert_called_once_with(
-            f"{BASE_URL}/api/v1/episodes", params={}
+            f"{BASE_URL}/api/v1/episodes",
+            params={"page": 1, "limit": 100},
         )
         assert result == episodes
 
@@ -155,7 +157,8 @@ class TestEpisodes:
         api.session.get = MagicMock(return_value=mock_ok([]))
         api.get_episodes(status="published")
         api.session.get.assert_called_once_with(
-            f"{BASE_URL}/api/v1/episodes", params={"status": "published"}
+            f"{BASE_URL}/api/v1/episodes",
+            params={"status": "published", "page": 1, "limit": 100},
         )
 
     def test_get_episodes_draft_filter(self):
@@ -164,6 +167,32 @@ class TestEpisodes:
         api.get_episodes(status="draft")
         _, kwargs = api.session.get.call_args
         assert kwargs["params"]["status"] == "draft"
+
+    def test_get_episodes_combines_all_pages(self):
+        api = make_api()
+        first = {
+            "items": [{"id": 1}],
+            "total": 2,
+            "page": 1,
+            "limit": 1,
+            "total_pages": 2,
+        }
+        second = {
+            "items": [{"id": 2}],
+            "total": 2,
+            "page": 2,
+            "limit": 1,
+            "total_pages": 2,
+        }
+        api.session.get = MagicMock(
+            side_effect=[mock_ok(first), mock_ok(second)]
+        )
+
+        result = api.get_episodes()
+
+        assert result["items"] == [{"id": 1}, {"id": 2}]
+        assert api.session.get.call_count == 2
+        assert api.session.get.call_args_list[1].kwargs["params"]["page"] == 2
 
     def test_get_episode_by_id(self):
         api = make_api()
@@ -244,7 +273,29 @@ class TestPages:
         pages = [{"id": 1, "title": "About"}]
         api.session.get = MagicMock(return_value=mock_ok(pages))
         assert api.get_pages() == pages
-        api.session.get.assert_called_once_with(f"{BASE_URL}/api/v1/pages")
+        api.session.get.assert_called_once_with(
+            f"{BASE_URL}/api/v1/pages",
+            params={"page": 1, "limit": 100},
+        )
+
+    def test_get_pages_combines_all_pages(self):
+        api = make_api()
+        api.session.get = MagicMock(side_effect=[
+            mock_ok({
+                "items": [{"id": 1}],
+                "total": 2,
+                "total_pages": 2,
+            }),
+            mock_ok({
+                "items": [{"id": 2}],
+                "total": 2,
+                "total_pages": 2,
+            }),
+        ])
+
+        result = api.get_pages()
+
+        assert [page["id"] for page in result["items"]] == [1, 2]
 
     def test_get_page_by_id(self):
         api = make_api()
@@ -335,6 +386,19 @@ class TestTools:
         result = api.get_stats()
         assert result["episodes"]["total"] == 12
         assert result["cache"]["enabled"] is True
+        api.session.get.assert_called_once_with(
+            f"{BASE_URL}/api/v1/stats", params=None
+        )
+
+    def test_get_stats_filters_by_year(self):
+        api = make_api()
+        api.session.get = MagicMock(return_value=mock_ok({}))
+
+        api.get_stats(year=2026)
+
+        api.session.get.assert_called_once_with(
+            f"{BASE_URL}/api/v1/stats", params={"year": 2026}
+        )
 
 
 # ---------------------------------------------------------------------------

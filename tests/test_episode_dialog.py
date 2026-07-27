@@ -1,14 +1,15 @@
 """Tests para EpisodeDialog — validación, población de campos y get_data."""
 import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 FULL_EPISODE = {
     "title": "Ep 1",
-    "slug": "ep-1",
     "description": "Test description",
     "content": "Long content",
     "audio_url": "https://example.com/audio.mp3",
+    "audio_size_bytes": 5_000_000,
+    "audio_mime_type": "audio/mpeg",
     "image_url": "https://example.com/image.jpg",
     "duration": "00:30:00",
     "season_number": 2,
@@ -42,9 +43,6 @@ class TestNewEpisodeDialog:
     def test_title_field_empty(self, dialog):
         assert dialog.title_edit.text() == ""
 
-    def test_slug_field_empty(self, dialog):
-        assert dialog.slug_edit.text() == ""
-
     def test_description_field_empty(self, dialog):
         assert dialog.description_edit.toPlainText() == ""
 
@@ -66,6 +64,9 @@ class TestNewEpisodeDialog:
     def test_get_files_returns_none_image(self, dialog):
         assert dialog.get_files()["image"] is None
 
+    def test_audio_player_is_lazy(self, dialog):
+        assert dialog.audio_url_edit._player is None
+
 
 # ---------------------------------------------------------------------------
 # Validación — _on_accept
@@ -76,6 +77,8 @@ class TestEpisodeValidation:
         dialog.title_edit.setText("Título válido")
         dialog.content_edit.setPlainText("Contenido válido")
         dialog.audio_url_edit.setText("https://example.com/audio.mp3")
+        dialog.audio_size_edit.setText("5000000")
+        dialog.status_combo.setCurrentText("published")
 
     def test_warning_when_title_empty(self, dialog):
         dialog.description_edit.setPlainText("desc")
@@ -84,16 +87,19 @@ class TestEpisodeValidation:
             dialog._on_accept()
             mock_warn.assert_called_once()
 
-    def test_warning_when_description_empty(self, dialog):
+    def test_warning_when_content_empty_for_published(self, dialog):
         dialog.title_edit.setText("Title")
         dialog.audio_url_edit.setText("https://x.com/a.mp3")
+        dialog.audio_size_edit.setText("1000")
+        dialog.status_combo.setCurrentText("published")
         with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
             dialog._on_accept()
             mock_warn.assert_called_once()
 
     def test_warning_when_no_audio(self, dialog):
         dialog.title_edit.setText("Title")
-        dialog.description_edit.setPlainText("Desc")
+        dialog.content_edit.setPlainText("Contenido")
+        dialog.status_combo.setCurrentText("published")
         with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
             dialog._on_accept()
             assert "Audio" in str(mock_warn.call_args)
@@ -108,18 +114,77 @@ class TestEpisodeValidation:
         dialog.title_edit.setText("Title")
         dialog.content_edit.setPlainText("Contenido")
         dialog._audio_path = "/tmp/audio.mp3"
+        dialog.status_combo.setCurrentText("published")
         with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
             dialog._on_accept()
             mock_warn.assert_not_called()
 
-    def test_all_three_fields_missing_listed(self, dialog):
-        """Si faltan los tres campos, el mensaje los menciona."""
+    def test_draft_only_requires_title(self, dialog):
+        dialog.title_edit.setText("Idea para un episodio")
+        with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
+            dialog._on_accept()
+            mock_warn.assert_not_called()
+
+    def test_published_lists_title_content_and_audio(self, dialog):
+        dialog.status_combo.setCurrentText("published")
         with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
             dialog._on_accept()
             call_args = str(mock_warn.call_args)
             assert "Título" in call_args
             assert "Contenido" in call_args
             assert "Audio" in call_args
+
+    def test_remote_audio_requires_positive_size(self, dialog):
+        dialog.title_edit.setText("Título")
+        dialog.content_edit.setPlainText("Contenido")
+        dialog.audio_url_edit.setText("https://example.com/audio.mp3")
+        dialog.status_combo.setCurrentText("published")
+        with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
+            dialog._on_accept()
+            assert "Tamaño" in str(mock_warn.call_args)
+
+
+class TestRemoteAudioMetadata:
+    def test_probe_fills_size_and_mime(self, dialog):
+        response = MagicMock()
+        response.status_code = 200
+        response.headers = {
+            "Content-Length": "5000000",
+            "Content-Type": "audio/ogg; charset=binary",
+        }
+        dialog.audio_url_edit.setText("https://example.com/audio.ogg")
+
+        with patch("ui.episode_dialog.requests.head", return_value=response):
+            dialog._probe_remote_audio()
+
+        assert dialog.audio_size_edit.text() == "5000000"
+        assert dialog.audio_mime_edit.text() == "audio/ogg"
+        response.close.assert_called_once()
+
+    def test_probe_falls_back_to_streamed_get_without_length(self, dialog):
+        head_response = MagicMock()
+        head_response.status_code = 200
+        head_response.headers = {}
+        get_response = MagicMock()
+        get_response.headers = {
+            "Content-Length": "42",
+            "Content-Type": "audio/mpeg",
+        }
+        dialog.audio_url_edit.setText("https://example.com/audio.mp3")
+
+        with (
+            patch("ui.episode_dialog.requests.head", return_value=head_response),
+            patch("ui.episode_dialog.requests.get", return_value=get_response) as get,
+        ):
+            dialog._probe_remote_audio()
+
+        get.assert_called_once_with(
+            "https://example.com/audio.mp3",
+            allow_redirects=True,
+            timeout=10,
+            stream=True,
+        )
+        assert dialog.audio_size_edit.text() == "42"
 
 
 # ---------------------------------------------------------------------------
@@ -130,9 +195,6 @@ class TestEpisodeDialogPopulate:
     def test_title_populated(self, edit_dialog):
         assert edit_dialog.title_edit.text() == "Ep 1"
 
-    def test_slug_populated(self, edit_dialog):
-        assert edit_dialog.slug_edit.text() == "ep-1"
-
     def test_description_populated(self, edit_dialog):
         assert edit_dialog.description_edit.toPlainText() == "Test description"
 
@@ -141,6 +203,12 @@ class TestEpisodeDialogPopulate:
 
     def test_duration_populated(self, edit_dialog):
         assert edit_dialog.duration_edit.text() == "00:30:00"
+
+    def test_audio_size_populated(self, edit_dialog):
+        assert edit_dialog.audio_size_edit.text() == "5000000"
+
+    def test_audio_mime_populated(self, edit_dialog):
+        assert edit_dialog.audio_mime_edit.text() == "audio/mpeg"
 
     def test_season_populated(self, edit_dialog):
         assert edit_dialog.season_edit.text() == "2"
@@ -184,9 +252,6 @@ class TestEpisodeGetData:
     def test_returns_title(self, edit_dialog):
         assert edit_dialog.get_data()["title"] == "Ep 1"
 
-    def test_returns_slug(self, edit_dialog):
-        assert edit_dialog.get_data()["slug"] == "ep-1"
-
     def test_season_number_as_int(self, edit_dialog):
         data = edit_dialog.get_data()
         assert data["season_number"] == 2
@@ -222,6 +287,12 @@ class TestEpisodeGetData:
     def test_audio_url_included(self, edit_dialog):
         assert "audio_url" in edit_dialog.get_data()
 
+    def test_audio_size_included_as_int(self, edit_dialog):
+        assert edit_dialog.get_data()["audio_size_bytes"] == 5_000_000
+
+    def test_audio_mime_included(self, edit_dialog):
+        assert edit_dialog.get_data()["audio_mime_type"] == "audio/mpeg"
+
     def test_pub_date_key_in_get_data(self, qapp):
         from ui.episode_dialog import EpisodeDialog
         ep = {**FULL_EPISODE, "pub_date": "2024-01-15 10:00:00"}
@@ -252,6 +323,7 @@ class TestScheduledEpisode:
         dialog.title_edit.setText("Título")
         dialog.content_edit.setPlainText("Contenido")
         dialog.audio_url_edit.setText("https://example.com/a.mp3")
+        dialog.audio_size_edit.setText("1000")
         dialog.status_combo.setCurrentText("scheduled")
         with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
             dialog._on_accept()
@@ -262,6 +334,7 @@ class TestScheduledEpisode:
         dialog.title_edit.setText("Título")
         dialog.content_edit.setPlainText("Contenido")
         dialog.audio_url_edit.setText("https://example.com/a.mp3")
+        dialog.audio_size_edit.setText("1000")
         dialog.status_combo.setCurrentText("scheduled")
         dialog.published_at_edit.setText("2025-06-01T10:00:00")
         with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:

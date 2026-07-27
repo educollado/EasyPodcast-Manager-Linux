@@ -27,8 +27,10 @@ class PagesTab(QWidget):
         toolbar.addStretch()
         layout.addLayout(toolbar)
 
-        self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["ID", "Título", "Slug", "Estado"])
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(
+            ["ID", "Título", "Slug", "Página padre", "Orden", "Estado"]
+        )
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -59,7 +61,13 @@ class PagesTab(QWidget):
             self.table.setItem(row, 0, QTableWidgetItem(str(page.get("id", ""))))
             self.table.setItem(row, 1, QTableWidgetItem(page.get("title", "")))
             self.table.setItem(row, 2, QTableWidgetItem(page.get("slug", "")))
-            self.table.setItem(row, 3, QTableWidgetItem(page.get("status", "")))
+            self.table.setItem(
+                row, 3, QTableWidgetItem(str(page.get("parent_id", "") or ""))
+            )
+            self.table.setItem(
+                row, 4, QTableWidgetItem(str(page.get("sort_order", 0)))
+            )
+            self.table.setItem(row, 5, QTableWidgetItem(page.get("status", "")))
 
     def _selected_page(self):
         row = self.table.currentRow()

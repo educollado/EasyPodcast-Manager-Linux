@@ -58,12 +58,11 @@ class AudioPlayerField(QWidget):
         self._ico_pause = _icon_pause()
         self._ico_stop = _icon_stop()
 
-        self._player = QMediaPlayer(self)
-        self._audio_out = QAudioOutput(self)
-        self._player.setAudioOutput(self._audio_out)
-        self._audio_out.setVolume(1.0)
-        self._player.playbackStateChanged.connect(self._on_state_changed)
-        self._player.errorOccurred.connect(self._on_error)
+        # Qt conecta con PipeWire/PulseAudio al crear QAudioOutput. Se inicializa
+        # al pulsar reproducir para que abrir un formulario nunca dependa del
+        # estado del subsistema de audio.
+        self._player = None
+        self._audio_out = None
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -104,17 +103,29 @@ class AudioPlayerField(QWidget):
 
     def setText(self, text):
         self.line_edit.setText(text or "")
-        self._player.stop()
+        if self._player is not None:
+            self._player.stop()
 
     def setPlaceholderText(self, text):
         self.line_edit.setPlaceholderText(text)
 
     # --- Controles ---
 
+    def _ensure_player(self):
+        if self._player is not None:
+            return
+        self._player = QMediaPlayer(self)
+        self._audio_out = QAudioOutput(self)
+        self._player.setAudioOutput(self._audio_out)
+        self._audio_out.setVolume(1.0)
+        self._player.playbackStateChanged.connect(self._on_state_changed)
+        self._player.errorOccurred.connect(self._on_error)
+
     def _on_play_pause(self):
         url = self.line_edit.text().strip()
         if not url:
             return
+        self._ensure_player()
         state = self._player.playbackState()
         if state == QMediaPlayer.PlaybackState.PlayingState:
             self._player.pause()
@@ -125,7 +136,8 @@ class AudioPlayerField(QWidget):
             self._player.play()
 
     def _on_stop(self):
-        self._player.stop()
+        if self._player is not None:
+            self._player.stop()
 
     def _on_state_changed(self, state):
         if state == QMediaPlayer.PlaybackState.PlayingState:

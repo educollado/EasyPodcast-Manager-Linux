@@ -5,8 +5,8 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![PySide6](https://img.shields.io/badge/UI-PySide6%20%2F%20Qt6-41cd52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-153%20passing-brightgreen)](#tests)
-[![Version](https://img.shields.io/badge/version-0.0.4-blue)](https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.4)
+[![Tests](https://img.shields.io/badge/tests-184%20passing-brightgreen)](#tests)
+[![Version](https://img.shields.io/badge/version-0.0.5-blue)](https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.5)
 
 ---
 
@@ -34,13 +34,13 @@
 
 | Módulo | Funcionalidades |
 |---|---|
-| **Episodios** | Crear, editar, eliminar, cambiar estado (borrador ↔ publicado), filtrar |
-| **Audio** | Grabación en directo desde micrófono (WAV → MP3 vía ffmpeg), selector de dispositivo de entrada, vúmetro LED en tiempo real, reproductor integrado, subida de archivo o URL remota |
+| **Episodios** | Crear, editar, eliminar, cambiar estado (borrador ↔ publicado), programar, filtrar y cargar automáticamente todas las páginas de resultados |
+| **Audio** | Grabación en directo desde micrófono (WAV → MP3 vía ffmpeg), selector de dispositivo de entrada, vúmetro LED en tiempo real, reproductor integrado, subida de archivo o URL remota con tamaño y MIME |
 | **Editor HTML** | Editor de código + vista previa en tiempo real, barra de herramientas con atajos |
 | **Podcast** | Edición de todos los metadatos: título, descripción, autor, categoría, imagen, iTunes... |
-| **Páginas** | Gestión de páginas estáticas con contenido HTML completo y orden en menú |
+| **Páginas** | Gestión de páginas estáticas con contenido HTML completo, jerarquía padre/hijo y orden en menú |
 | **Redes sociales** | 9 plataformas: Blog, LinkedIn, Mastodon, X, Instagram, YouTube, GitHub, Bluesky, Pixelfed |
-| **Herramientas** | Limpiar caché, regenerar feed RSS, regenerar imágenes, estadísticas del servidor |
+| **Herramientas** | Limpiar caché, regenerar feed RSS, regenerar imágenes y consultar estadísticas de episodios, caché, descargas y reproducciones |
 | **Actualizaciones** | Comprobación y actualización del servidor remoto desde la interfaz |
 
 ---
@@ -100,7 +100,7 @@ python main.py
 ./build_deb.sh
 
 # Instalar
-sudo apt install ./easypodcast-manager_0.0.3_amd64.deb
+sudo apt install ./easypodcast-manager_0.0.5_amd64.deb
 
 # Desinstalar
 sudo apt remove easypodcast-manager
@@ -113,7 +113,9 @@ sudo apt remove easypodcast-manager
 Al lanzar la aplicación por primera vez aparece el **diálogo de configuración** donde se introducen:
 
 - **URL del servidor**: dirección base del servidor EasyPodcast (p.ej. `https://www.mipodcast.com`)
-- **Token de acceso**: token de API generado en el panel de EasyPodcast
+- **Token de acceso**: token de API generado en el panel de EasyPodcast. El
+  alcance `content` permite gestionar contenidos; actualizar el servidor
+  requiere alcance `admin`.
 
 La aplicación prueba la conexión antes de guardar. Los datos se almacenan en `~/.config/easypodcast/config.ini`.
 
@@ -171,6 +173,12 @@ Todos los endpoints siguen el patrón `{base_url}/api/v1/{recurso}`.
 
 La autenticación es mediante cabecera `Authorization: Bearer {token}`. Todos los errores HTTP se convierten en `APIError` y se muestran al usuario.
 
+Los listados paginados de episodios y páginas se recorren automáticamente
+hasta recuperar todos los resultados. Al publicar o programar un episodio con
+una URL de audio remota también debe indicarse su tamaño en bytes; el botón
+«Detectar desde URL» intenta obtener automáticamente el tamaño y el tipo MIME,
+tal como requiere EasyPodcast 1.9.5.
+
 ---
 
 ## Tests
@@ -189,11 +197,11 @@ python -m pytest -v
 | Fichero | Tests | Cobertura |
 |---|---|---|
 | `tests/test_config.py` | 14 | Carga, guardado y validación de credenciales |
-| `tests/test_api.py` | 40 | URLs, cabeceras, `_handle`, todos los endpoints |
-| `tests/test_tools_tab.py` | 31 | Formateo de valores y renderizado de estadísticas |
-| `tests/test_episode_dialog.py` | 38 | Validación, población de campos, `get_data` |
-| `tests/test_page_dialog.py` | 30 | Validación, población de campos, `get_data` |
-| **Total** | **153** | |
+| `tests/test_api.py` | 43 | URLs, cabeceras, paginación, `_handle`, todos los endpoints |
+| `tests/test_tools_tab.py` | 36 | Formateo de valores, estadísticas y permisos de actualización |
+| `tests/test_episode_dialog.py` | 55 | Validación por estado, audio remoto, población de campos, `get_data` |
+| `tests/test_page_dialog.py` | 36 | Validación, jerarquía, orden y `get_data` |
+| **Total** | **184** | |
 
 ---
 
