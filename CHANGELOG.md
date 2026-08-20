@@ -7,6 +7,20 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+## [0.0.6] — 2026-08-20
+
+### Añadido
+
+- Gestión de la imagen Hero de la web del podcast mediante URL o subida de un
+  archivo local, con previsualización y opción de eliminarla.
+
+### Cambiado
+
+- El cliente API admite `hero_image_file` mediante `multipart/form-data` y
+  conserva el envío JSON cuando no se seleccionan archivos.
+- README y paquete Debian actualizados a la versión 0.0.6.
+- Suite ampliada a 190 tests.
+
 ## [0.0.5] — 2026-07-27
 
 ### Cambiado
@@ -121,6 +135,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+[0.0.6]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.6
 [0.0.5]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.5
 [0.0.4]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.4
 [0.0.3]: https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.3

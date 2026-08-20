@@ -5,8 +5,8 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![PySide6](https://img.shields.io/badge/UI-PySide6%20%2F%20Qt6-41cd52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-184%20passing-brightgreen)](#tests)
-[![Version](https://img.shields.io/badge/version-0.0.5-blue)](https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.5)
+[![Tests](https://img.shields.io/badge/tests-190%20passing-brightgreen)](#tests)
+[![Version](https://img.shields.io/badge/version-0.0.6-blue)](https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.6)
 
 ---
 
@@ -37,7 +37,7 @@
 | **Episodios** | Crear, editar, eliminar, cambiar estado (borrador ↔ publicado), programar, filtrar y cargar automáticamente todas las páginas de resultados |
 | **Audio** | Grabación en directo desde micrófono (WAV → MP3 vía ffmpeg), selector de dispositivo de entrada, vúmetro LED en tiempo real, reproductor integrado, subida de archivo o URL remota con tamaño y MIME |
 | **Editor HTML** | Editor de código + vista previa en tiempo real, barra de herramientas con atajos |
-| **Podcast** | Edición de todos los metadatos: título, descripción, autor, categoría, imagen, iTunes... |
+| **Podcast** | Edición de metadatos, portada, imagen Hero de la web, categoría, datos de iTunes... |
 | **Páginas** | Gestión de páginas estáticas con contenido HTML completo, jerarquía padre/hijo y orden en menú |
 | **Redes sociales** | 9 plataformas: Blog, LinkedIn, Mastodon, X, Instagram, YouTube, GitHub, Bluesky, Pixelfed |
 | **Herramientas** | Limpiar caché, regenerar feed RSS, regenerar imágenes y consultar estadísticas de episodios, caché, descargas y reproducciones |
@@ -100,7 +100,7 @@ python main.py
 ./build_deb.sh
 
 # Instalar
-sudo apt install ./easypodcast-manager_0.0.5_amd64.deb
+sudo apt install ./easypodcast-manager_0.0.6_amd64.deb
 
 # Desinstalar
 sudo apt remove easypodcast-manager
@@ -197,11 +197,12 @@ python -m pytest -v
 | Fichero | Tests | Cobertura |
 |---|---|---|
 | `tests/test_config.py` | 14 | Carga, guardado y validación de credenciales |
-| `tests/test_api.py` | 43 | URLs, cabeceras, paginación, `_handle`, todos los endpoints |
+| `tests/test_api.py` | 44 | URLs, cabeceras, paginación, `_handle`, todos los endpoints |
 | `tests/test_tools_tab.py` | 36 | Formateo de valores, estadísticas y permisos de actualización |
 | `tests/test_episode_dialog.py` | 55 | Validación por estado, audio remoto, población de campos, `get_data` |
 | `tests/test_page_dialog.py` | 36 | Validación, jerarquía, orden y `get_data` |
-| **Total** | **184** | |
+| `tests/test_podcast_tab.py` | 5 | URL, subida, eliminación y selección de imagen Hero |
+| **Total** | **190** | |
 
 ---
 

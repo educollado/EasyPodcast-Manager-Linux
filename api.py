@@ -131,9 +131,34 @@ class EasyPodcastAPI:
         r = self.session.get(self._url("/podcast"))
         return self._handle(r)
 
-    def update_podcast(self, data):
-        r = self.session.post(self._url("/podcast"), json=data)
-        return self._handle(r)
+    def update_podcast(self, data, image_path=None, hero_image_path=None):
+        """Actualiza el podcast y sube opcionalmente sus imágenes."""
+        if not image_path and not hero_image_path:
+            r = self.session.post(self._url("/podcast"), json=data)
+            return self._handle(r)
+
+        form_data = {k: str(v) for k, v in data.items() if v is not None}
+        with ExitStack() as stack:
+            files = {}
+            if image_path:
+                mime = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+                image_file = stack.enter_context(open(image_path, "rb"))
+                files["image_file"] = (
+                    os.path.basename(image_path), image_file, mime,
+                )
+            if hero_image_path:
+                mime = mimetypes.guess_type(hero_image_path)[0] or "image/jpeg"
+                hero_file = stack.enter_context(open(hero_image_path, "rb"))
+                files["hero_image_file"] = (
+                    os.path.basename(hero_image_path), hero_file, mime,
+                )
+            r = self.session.post(
+                self._url("/podcast"),
+                data=form_data,
+                files=files,
+                headers={"Content-Type": None},
+            )
+            return self._handle(r)
 
     # --- Pages ---
 

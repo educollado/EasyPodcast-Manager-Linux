@@ -262,6 +262,31 @@ class TestPodcast:
             f"{BASE_URL}/api/v1/podcast", json=data
         )
 
+    def test_update_podcast_with_hero_image(self, tmp_path):
+        api = make_api()
+        hero = tmp_path / "hero.png"
+        hero.write_bytes(b"fake image")
+        updated = {"title": "Podcast", "hero_image_url": "/images/hero.webp"}
+        api.session.post = MagicMock(return_value=mock_ok(updated))
+
+        result = api.update_podcast(
+            {"title": "Podcast", "hero_image_url": ""},
+            hero_image_path=str(hero),
+        )
+
+        assert result == updated
+        call = api.session.post.call_args
+        assert call.args == (f"{BASE_URL}/api/v1/podcast",)
+        assert call.kwargs["data"] == {
+            "title": "Podcast",
+            "hero_image_url": "",
+        }
+        filename, file_object, mime = call.kwargs["files"]["hero_image_file"]
+        assert filename == "hero.png"
+        assert file_object.closed
+        assert mime == "image/png"
+        assert call.kwargs["headers"] == {"Content-Type": None}
+
 
 # ---------------------------------------------------------------------------
 # Páginas
