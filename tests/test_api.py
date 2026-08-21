@@ -220,6 +220,21 @@ class TestEpisodes:
             f"{BASE_URL}/api/v1/episodes/1", json=data
         )
 
+    def test_episode_multipart_preserves_empty_explicit(self, tmp_path):
+        api = make_api()
+        audio = tmp_path / "episode.mp3"
+        audio.write_bytes(b"audio")
+        api.session.post = MagicMock(return_value=mock_ok({"id": 1}))
+
+        api.create_episode(
+            {"title": "Episode", "content": "Body", "explicit": ""},
+            audio_path=str(audio),
+        )
+
+        call = api.session.post.call_args
+        assert call.kwargs["data"]["explicit"] == ""
+        assert call.kwargs["files"]["audio_file"][1].closed
+
     def test_delete_episode(self):
         api = make_api()
         api.session.delete = MagicMock(return_value=mock_no_content())

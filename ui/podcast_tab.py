@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QLineEdit, QTextEdit,
     QPushButton, QScrollArea, QMessageBox, QHBoxLayout, QLabel,
-    QFileDialog
+    QFileDialog, QComboBox
 )
 import os
 from api import APIError
@@ -98,6 +98,21 @@ class PodcastTab(QWidget):
         self.type_edit = field("episodic / serial")
         self._form.addRow("Tipo:", self.type_edit)
 
+        self.rss_item_limit_edit = field("Número máximo de episodios en el RSS")
+        self._form.addRow("Límite de episodios RSS:", self.rss_item_limit_edit)
+
+        self.home_items_per_page_edit = field("Episodios por página")
+        self._form.addRow("Episodios en portada:", self.home_items_per_page_edit)
+
+        self.write_audio_metadata_combo = self._boolean_combo()
+        self._form.addRow("Escribir metadatos en audio:", self.write_audio_metadata_combo)
+
+        self.cache_enabled_combo = self._boolean_combo()
+        self._form.addRow("Caché habilitada:", self.cache_enabled_combo)
+
+        self.app_language_edit = field("es")
+        self._form.addRow("Idioma de la aplicación:", self.app_language_edit)
+
         btn_bar = QHBoxLayout()
         btn_bar.addStretch()
         self.btn_save = QPushButton("Guardar cambios")
@@ -107,6 +122,20 @@ class PodcastTab(QWidget):
         btn_bar.addWidget(self.btn_refresh)
         btn_bar.addWidget(self.btn_save)
         outer.addLayout(btn_bar)
+
+    @staticmethod
+    def _boolean_combo():
+        combo = QComboBox()
+        combo.addItem("Sí", True)
+        combo.addItem("No", False)
+        return combo
+
+    @staticmethod
+    def _set_boolean_combo(combo, value):
+        enabled = value in (True, 1, "1", "true", "True", "yes", "on")
+        index = combo.findData(enabled)
+        if index >= 0:
+            combo.setCurrentIndex(index)
 
     def refresh(self):
         try:
@@ -133,8 +162,19 @@ class PodcastTab(QWidget):
         self.copyright_edit.setText(s(data.get("copyright")))
         self.explicit_edit.setText(s(data.get("explicit")))
         self.type_edit.setText(s(data.get("itunes_type")))
+        self.rss_item_limit_edit.setText(s(data.get("rss_item_limit")))
+        self.home_items_per_page_edit.setText(s(data.get("home_items_per_page")))
+        self._set_boolean_combo(
+            self.write_audio_metadata_combo, data.get("write_audio_metadata", False)
+        )
+        self._set_boolean_combo(
+            self.cache_enabled_combo, data.get("cache_enabled", False)
+        )
+        self.app_language_edit.setText(s(data.get("app_language")))
 
     def _on_save(self):
+        rss_item_limit = self.rss_item_limit_edit.text().strip()
+        home_items_per_page = self.home_items_per_page_edit.text().strip()
         data = {
             "title": self.title_edit.text().strip(),
             "description": self.description_edit.toPlainText().strip(),
@@ -149,6 +189,15 @@ class PodcastTab(QWidget):
             "copyright": self.copyright_edit.text().strip(),
             "explicit": self.explicit_edit.text().strip(),
             "itunes_type": self.type_edit.text().strip(),
+            "rss_item_limit": int(rss_item_limit) if rss_item_limit.isdigit() else rss_item_limit,
+            "home_items_per_page": (
+                int(home_items_per_page)
+                if home_items_per_page.isdigit()
+                else home_items_per_page
+            ),
+            "write_audio_metadata": self.write_audio_metadata_combo.currentData(),
+            "cache_enabled": self.cache_enabled_combo.currentData(),
+            "app_language": self.app_language_edit.text().strip(),
         }
         try:
             if self._hero_image_path:

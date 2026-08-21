@@ -45,6 +45,10 @@ class EpisodeDialog(QDialog):
         self.description_edit.setMinimumHeight(100)
         form.addRow("Descripción:", self.description_edit)
 
+        self.author_edit = QLineEdit()
+        self.author_edit.setPlaceholderText("Hereda el autor del podcast si se deja vacío")
+        form.addRow("Autor:", self.author_edit)
+
         self.content_label = QLabel("Contenido:")
         self.content_edit = HtmlEditorField()
         self.content_edit.setMinimumHeight(220)
@@ -124,6 +128,12 @@ class EpisodeDialog(QDialog):
         self.episode_type_combo.addItems(["full", "trailer", "bonus"])
         form.addRow("Tipo:", self.episode_type_combo)
 
+        self.explicit_combo = QComboBox()
+        self.explicit_combo.addItem("Heredar del podcast", "")
+        self.explicit_combo.addItem("No", "0")
+        self.explicit_combo.addItem("Sí", "1")
+        form.addRow("Contenido explícito:", self.explicit_combo)
+
         self.status_combo = QComboBox()
         self.status_combo.addItems(["draft", "published", "scheduled"])
         self.status_combo.currentTextChanged.connect(self._on_status_changed)
@@ -143,7 +153,7 @@ class EpisodeDialog(QDialog):
         self._on_status_changed(self.status_combo.currentText())
 
     def _on_status_changed(self, status):
-        required = status != "draft"
+        required = not self.episode or status != "draft"
         self.content_label.setText("Contenido*:" if required else "Contenido:")
         self.audio_label.setText("Audio*:" if required else "Audio:")
         if status == "scheduled":
@@ -266,7 +276,9 @@ class EpisodeDialog(QDialog):
         status = self.status_combo.currentText()
         if not self.title_edit.text().strip():
             missing.append("Título")
-        if status != "draft":
+        # La API nueva exige contenido y audio al crear, incluso como borrador.
+        # Al editar se conservan los borradores antiguos incompletos.
+        if not self.episode or status != "draft":
             if not self.content_edit.toPlainText().strip():
                 missing.append("Contenido")
             if not self.audio_url_edit.text().strip() and not self._audio_path:
@@ -295,6 +307,7 @@ class EpisodeDialog(QDialog):
     def _populate(self, episode):
         self.title_edit.setText(episode.get("title", ""))
         self.description_edit.setPlainText(episode.get("description", ""))
+        self.author_edit.setText(episode.get("author", "") or "")
         self.content_edit.setPlainText(episode.get("content", ""))
         self.audio_url_edit.setText(episode.get("audio_url", ""))
         self.audio_size_edit.setText(str(episode.get("audio_size_bytes", "") or ""))
@@ -309,6 +322,12 @@ class EpisodeDialog(QDialog):
         if idx >= 0:
             self.episode_type_combo.setCurrentIndex(idx)
 
+        explicit = episode.get("explicit", "")
+        explicit = "" if explicit in (None, "") else str(int(bool(explicit))) if isinstance(explicit, bool) else str(explicit)
+        idx = self.explicit_combo.findData(explicit)
+        if idx >= 0:
+            self.explicit_combo.setCurrentIndex(idx)
+
         status = episode.get("status", "draft")
         idx = self.status_combo.findText(status)
         if idx >= 0:
@@ -320,12 +339,14 @@ class EpisodeDialog(QDialog):
         data = {
             "title": self.title_edit.text().strip(),
             "description": self.description_edit.toPlainText().strip(),
+            "author": self.author_edit.text().strip(),
             "content": self.content_edit.toPlainText().strip(),
             "audio_url": self.audio_url_edit.text().strip(),
             "audio_mime_type": self.audio_mime_edit.text().strip(),
             "image_url": self.image_url_edit.text().strip(),
             "duration": self.duration_edit.text().strip(),
             "episode_type": self.episode_type_combo.currentText(),
+            "explicit": self.explicit_combo.currentData(),
             "status": self.status_combo.currentText(),
             "pub_date": self.published_at_edit.text().strip(),
         }
@@ -338,7 +359,10 @@ class EpisodeDialog(QDialog):
         audio_size = self.audio_size_edit.text().strip()
         if audio_size.isdigit():
             data["audio_size_bytes"] = int(audio_size)
-        return {k: v for k, v in data.items() if v != ""}
+        result = {k: v for k, v in data.items() if v != ""}
+        # Una cadena vacía tiene significado: restablece la herencia del podcast.
+        result["explicit"] = data["explicit"]
+        return result
 
     def get_files(self):
         """Devuelve rutas de archivo seleccionadas, o None si no se seleccionó."""

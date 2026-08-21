@@ -17,6 +17,8 @@ FULL_EPISODE = {
     "episode_type": "full",
     "status": "published",
     "published_at": "2024-01-15 10:00:00",
+    "author": "Ana",
+    "explicit": 1,
 }
 
 
@@ -119,10 +121,18 @@ class TestEpisodeValidation:
             dialog._on_accept()
             mock_warn.assert_not_called()
 
-    def test_draft_only_requires_title(self, dialog):
+    def test_new_draft_requires_content_and_audio(self, dialog):
         dialog.title_edit.setText("Idea para un episodio")
         with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
             dialog._on_accept()
+            assert "Contenido" in str(mock_warn.call_args)
+            assert "Audio" in str(mock_warn.call_args)
+
+    def test_existing_draft_can_remain_incomplete(self, qapp):
+        from ui.episode_dialog import EpisodeDialog
+        draft = EpisodeDialog(episode={"id": 7, "title": "Idea", "status": "draft"})
+        with patch("PySide6.QtWidgets.QMessageBox.warning") as mock_warn:
+            draft._on_accept()
             mock_warn.assert_not_called()
 
     def test_published_lists_title_content_and_audio(self, dialog):
@@ -210,6 +220,12 @@ class TestEpisodeDialogPopulate:
     def test_audio_mime_populated(self, edit_dialog):
         assert edit_dialog.audio_mime_edit.text() == "audio/mpeg"
 
+    def test_author_populated(self, edit_dialog):
+        assert edit_dialog.author_edit.text() == "Ana"
+
+    def test_explicit_populated(self, edit_dialog):
+        assert edit_dialog.explicit_combo.currentData() == "1"
+
     def test_season_populated(self, edit_dialog):
         assert edit_dialog.season_edit.text() == "2"
 
@@ -262,13 +278,23 @@ class TestEpisodeGetData:
         assert data["episode_number"] == 5
         assert isinstance(data["episode_number"], int)
 
-    def test_no_empty_strings_in_result(self, dialog):
+    def test_no_empty_strings_except_explicit_inheritance(self, dialog):
         dialog.title_edit.setText("Title")
         dialog.description_edit.setPlainText("Desc")
         dialog.audio_url_edit.setText("https://example.com/a.mp3")
         data = dialog.get_data()
-        for v in data.values():
+        for key, v in data.items():
+            if key == "explicit":
+                continue
             assert v != ""
+
+    def test_explicit_empty_string_resets_to_podcast_default(self, dialog):
+        assert dialog.get_data()["explicit"] == ""
+
+    def test_author_and_explicit_included(self, edit_dialog):
+        data = edit_dialog.get_data()
+        assert data["author"] == "Ana"
+        assert data["explicit"] == "1"
 
     def test_non_digit_season_excluded(self, dialog):
         dialog.season_edit.setText("abc")

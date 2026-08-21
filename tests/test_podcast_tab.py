@@ -6,6 +6,11 @@ PODCAST = {
     "title": "Mi podcast",
     "description": "Descripción",
     "hero_image_url": "https://example.com/hero.jpg",
+    "rss_item_limit": 50,
+    "home_items_per_page": 12,
+    "write_audio_metadata": True,
+    "cache_enabled": False,
+    "app_language": "es",
 }
 
 
@@ -24,6 +29,15 @@ class TestPodcastHero:
         assert tab.hero_image_url_edit.text() == PODCAST["hero_image_url"]
         assert tab._hero_image_path is None
 
+    def test_refresh_populates_new_api_fields(self, qapp):
+        tab, _ = make_tab(qapp)
+
+        assert tab.rss_item_limit_edit.text() == "50"
+        assert tab.home_items_per_page_edit.text() == "12"
+        assert tab.write_audio_metadata_combo.currentData() is True
+        assert tab.cache_enabled_combo.currentData() is False
+        assert tab.app_language_edit.text() == "es"
+
     def test_save_sends_hero_url_as_json(self, qapp):
         tab, api = make_tab(qapp)
         api.update_podcast.return_value = dict(PODCAST)
@@ -35,6 +49,20 @@ class TestPodcastHero:
         data = api.update_podcast.call_args.args[0]
         assert data["hero_image_url"] == "https://example.com/new-hero.webp"
         assert "hero_image_path" not in api.update_podcast.call_args.kwargs
+
+    def test_save_sends_new_api_fields(self, qapp):
+        tab, api = make_tab(qapp)
+        api.update_podcast.return_value = dict(PODCAST)
+
+        with patch("ui.podcast_tab.QMessageBox.information"):
+            tab._on_save()
+
+        data = api.update_podcast.call_args.args[0]
+        assert data["rss_item_limit"] == 50
+        assert data["home_items_per_page"] == 12
+        assert data["write_audio_metadata"] is True
+        assert data["cache_enabled"] is False
+        assert data["app_language"] == "es"
 
     def test_save_uploads_selected_hero_file(self, qapp, tmp_path):
         tab, api = make_tab(qapp)

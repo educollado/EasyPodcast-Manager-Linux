@@ -136,3 +136,67 @@ class TestGetCredentials:
             url, token = cfg.get_credentials()
             assert url == "https://new.com"
             assert token == "new-token"
+
+
+class TestProfiles:
+    def test_multiple_profiles_and_active_selection(self, tmp_path):
+        p1, p2 = _patch_paths(tmp_path)
+        with p1, p2:
+            first = cfg.save_profile(
+                "Podcast uno", "https://example.com/uno", "token-1"
+            )
+            second = cfg.save_profile(
+                "Podcast dos", "https://example.com/dos", "token-2"
+            )
+
+            assert len(cfg.get_profiles()) == 2
+            assert cfg.get_active_profile()["id"] == second
+            assert cfg.set_active_profile(first) is True
+            assert cfg.get_credentials() == ("https://example.com/uno", "token-1")
+
+    def test_update_profile_keeps_identifier(self, tmp_path):
+        p1, p2 = _patch_paths(tmp_path)
+        with p1, p2:
+            profile_id = cfg.save_profile("Original", "https://x.test/one", "a")
+            cfg.save_profile(
+                "Renombrado", "https://x.test/two/", "b", profile_id=profile_id
+            )
+
+            profiles = cfg.get_profiles()
+            assert profiles == [{
+                "id": profile_id,
+                "name": "Renombrado",
+                "base_url": "https://x.test/two",
+                "token": "b",
+            }]
+
+    def test_delete_active_profile_selects_remaining(self, tmp_path):
+        p1, p2 = _patch_paths(tmp_path)
+        with p1, p2:
+            first = cfg.save_profile("Uno", "https://x.test/uno", "a")
+            second = cfg.save_profile("Dos", "https://x.test/dos", "b")
+            cfg.delete_profile(second)
+
+            assert cfg.get_active_profile()["id"] == first
+
+    def test_legacy_configuration_is_exposed_as_profile(self, tmp_path):
+        (tmp_path / "config.ini").write_text(
+            "[easypodcast]\nbase_url=https://example.com/aratos\ntoken=abc\n"
+        )
+        p1, p2 = _patch_paths(tmp_path)
+        with p1, p2:
+            profile = cfg.get_active_profile()
+            assert profile["id"] == "legacy"
+            assert profile["name"] == "aratos"
+
+            cfg.save_profile(
+                "A Ratos Podcast", profile["base_url"], profile["token"],
+                profile_id=profile["id"],
+            )
+            assert cfg.get_active_profile()["name"] == "A Ratos Podcast"
+            assert "base_url" not in cfg.load_config()["easypodcast"]
+
+    def test_unknown_profile_cannot_be_activated(self, tmp_path):
+        p1, p2 = _patch_paths(tmp_path)
+        with p1, p2:
+            assert cfg.set_active_profile("missing") is False

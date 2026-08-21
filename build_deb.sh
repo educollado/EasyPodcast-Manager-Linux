@@ -6,7 +6,7 @@ set -euo pipefail
 # Configuración
 # ---------------------------------------------------------------------------
 PKG_NAME="easypodcast-manager"
-VERSION="0.0.6"
+VERSION="0.0.7"
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 DEB_FILE="${PKG_NAME}_${VERSION}_${ARCH}.deb"
 

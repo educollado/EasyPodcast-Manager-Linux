@@ -1,12 +1,12 @@
 # EasyPodcast Manager · Linux
 
-> Cliente de escritorio para Linux que permite gestionar un podcast alojado en un servidor [EasyPodcast](https://www.easypodcast.eu) directamente desde el escritorio, sin necesidad de acceder al panel web.
+> Cliente de escritorio para Linux que permite gestionar varios podcasts alojados en un servidor [EasyPodcast](https://www.easypodcast.eu) directamente desde el escritorio, sin necesidad de acceder al panel web.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![PySide6](https://img.shields.io/badge/UI-PySide6%20%2F%20Qt6-41cd52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-190%20passing-brightgreen)](#tests)
-[![Version](https://img.shields.io/badge/version-0.0.6-blue)](https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.6)
+[![Tests](https://img.shields.io/badge/tests-206%20passing-brightgreen)](#tests)
+[![Version](https://img.shields.io/badge/version-0.0.7-blue)](https://github.com/educollado/EasyPodcast-Manager-Linux/releases/tag/v0.0.7)
 
 ---
 
@@ -34,6 +34,7 @@
 
 | Módulo | Funcionalidades |
 |---|---|
+| **Perfiles** | Varios podcasts y usuarios, migración de la configuración antigua y cambio inmediato desde el selector principal |
 | **Episodios** | Crear, editar, eliminar, cambiar estado (borrador ↔ publicado), programar, filtrar y cargar automáticamente todas las páginas de resultados |
 | **Audio** | Grabación en directo desde micrófono (WAV → MP3 vía ffmpeg), selector de dispositivo de entrada, vúmetro LED en tiempo real, reproductor integrado, subida de archivo o URL remota con tamaño y MIME |
 | **Editor HTML** | Editor de código + vista previa en tiempo real, barra de herramientas con atajos |
@@ -100,7 +101,7 @@ python main.py
 ./build_deb.sh
 
 # Instalar
-sudo apt install ./easypodcast-manager_0.0.6_amd64.deb
+sudo apt install ./easypodcast-manager_0.0.7_amd64.deb
 
 # Desinstalar
 sudo apt remove easypodcast-manager
@@ -110,14 +111,18 @@ sudo apt remove easypodcast-manager
 
 ## Primer uso
 
-Al lanzar la aplicación por primera vez aparece el **diálogo de configuración** donde se introducen:
+Al lanzar la aplicación por primera vez aparece el **diálogo de configuración**. Cada perfil contiene:
 
-- **URL del servidor**: dirección base del servidor EasyPodcast (p.ej. `https://www.mipodcast.com`)
+- **Nombre del perfil**: nombre reconocible para mostrar en el selector.
+- **URL del podcast**: URL que incluye el directorio del podcast (p.ej. `https://www.mipodcast.com/mi-podcast`). No se debe añadir `/api/v1`.
 - **Token de acceso**: token de API generado en el panel de EasyPodcast. El
-  alcance `content` permite gestionar contenidos; actualizar el servidor
-  requiere alcance `admin`.
+  alcance `content` permite gestionar los podcasts asignados al usuario;
+  actualizar el servidor requiere alcance `admin`.
 
-La aplicación prueba la conexión antes de guardar. Los datos se almacenan en `~/.config/easypodcast/config.ini`.
+La aplicación prueba la conexión antes de guardar. Se pueden crear tantos
+perfiles como sean necesarios y cambiar entre ellos desde la barra superior.
+Los datos se almacenan en `~/.config/easypodcast/config.ini`; una configuración
+antigua de un único podcast se detecta y migra al editarla.
 
 Para reconfigurar: menú **Preferencias → Configuración**.
 
@@ -173,11 +178,17 @@ Todos los endpoints siguen el patrón `{base_url}/api/v1/{recurso}`.
 
 La autenticación es mediante cabecera `Authorization: Bearer {token}`. Todos los errores HTTP se convierten en `APIError` y se muestran al usuario.
 
+Los endpoints administrativos `/users` y `/users/podcasts` pertenecen a la
+administración global del servidor y no forman parte de este cliente de
+contenidos. Los permisos multiusuario sí se respetan automáticamente mediante
+el token de cada perfil.
+
 Los listados paginados de episodios y páginas se recorren automáticamente
-hasta recuperar todos los resultados. Al publicar o programar un episodio con
-una URL de audio remota también debe indicarse su tamaño en bytes; el botón
+hasta recuperar todos los resultados. Al crear un episodio se exige título,
+contenido y audio, también si comienza como borrador. Con una URL de audio
+remota también debe indicarse su tamaño en bytes; el botón
 «Detectar desde URL» intenta obtener automáticamente el tamaño y el tipo MIME,
-tal como requiere EasyPodcast 1.9.5.
+tal como requiere la API actual de EasyPodcast.
 
 ---
 
@@ -196,13 +207,14 @@ python -m pytest -v
 
 | Fichero | Tests | Cobertura |
 |---|---|---|
-| `tests/test_config.py` | 14 | Carga, guardado y validación de credenciales |
-| `tests/test_api.py` | 44 | URLs, cabeceras, paginación, `_handle`, todos los endpoints |
+| `tests/test_config.py` | 19 | Perfiles, migración, selección y credenciales |
+| `tests/test_api.py` | 45 | URLs, cabeceras, paginación, multipart, `_handle` y endpoints |
 | `tests/test_tools_tab.py` | 36 | Formateo de valores, estadísticas y permisos de actualización |
-| `tests/test_episode_dialog.py` | 55 | Validación por estado, audio remoto, población de campos, `get_data` |
+| `tests/test_episode_dialog.py` | 60 | Validación por estado, audio remoto, autor, explícito y `get_data` |
 | `tests/test_page_dialog.py` | 36 | Validación, jerarquía, orden y `get_data` |
-| `tests/test_podcast_tab.py` | 5 | URL, subida, eliminación y selección de imagen Hero |
-| **Total** | **190** | |
+| `tests/test_podcast_tab.py` | 7 | Metadatos avanzados e imagen Hero |
+| `tests/test_profiles_ui.py` | 3 | Alta, selección y cambio de perfiles desde la interfaz |
+| **Total** | **206** | |
 
 ---
 

@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QMainWindow, QTabWidget, QStatusBar, QMenuBar, QMessageBox,
-    QDialog, QVBoxLayout, QLabel, QDialogButtonBox
+    QDialog, QVBoxLayout, QLabel, QDialogButtonBox, QToolBar, QComboBox
 )
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
@@ -23,6 +23,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(900, 600)
         self.api = None
         self._setup_menu()
+        self._setup_profile_toolbar()
         self._setup_statusbar()
         self._load_api()
         self._build_tabs()
@@ -54,17 +55,52 @@ class MainWindow(QMainWindow):
         self.status = QStatusBar()
         self.setStatusBar(self.status)
 
+    def _setup_profile_toolbar(self):
+        toolbar = QToolBar("Podcasts", self)
+        toolbar.setMovable(False)
+        toolbar.addWidget(QLabel("Podcast: "))
+        self.profile_combo = QComboBox()
+        self.profile_combo.setMinimumWidth(220)
+        self.profile_combo.currentIndexChanged.connect(self._on_profile_changed)
+        toolbar.addWidget(self.profile_combo)
+        self.addToolBar(toolbar)
+
+    def _refresh_profile_selector(self):
+        active = config.get_active_profile()
+        active_id = active["id"] if active else None
+        self.profile_combo.blockSignals(True)
+        self.profile_combo.clear()
+        for profile in config.get_profiles():
+            self.profile_combo.addItem(profile["name"], profile["id"])
+        index = self.profile_combo.findData(active_id)
+        self.profile_combo.setCurrentIndex(index if index >= 0 else -1)
+        self.profile_combo.setEnabled(self.profile_combo.count() > 1)
+        self.profile_combo.blockSignals(False)
+
+    def _on_profile_changed(self, index):
+        profile_id = self.profile_combo.itemData(index)
+        if not profile_id or not config.set_active_profile(profile_id):
+            return
+        self._load_api()
+        self._build_tabs()
+
     def _load_api(self):
-        base_url, token = config.get_credentials()
-        if base_url and token:
-            self.api = EasyPodcastAPI(base_url, token)
-            self.status.showMessage(f"Conectado a: {base_url}")
+        self._refresh_profile_selector()
+        profile = config.get_active_profile()
+        if profile:
+            self.api = EasyPodcastAPI(profile["base_url"], profile["token"])
+            self.status.showMessage(
+                f"Conectado a: {profile['name']} — {profile['base_url']}"
+            )
         else:
             self.api = None
             self.status.showMessage("Sin configurar")
 
     def _build_tabs(self):
         if self.api is None:
+            empty = QLabel("Configura un podcast para comenzar.")
+            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.setCentralWidget(empty)
             return
         tabs = QTabWidget()
         tabs.addTab(EpisodesTab(self.api), "Episodios")

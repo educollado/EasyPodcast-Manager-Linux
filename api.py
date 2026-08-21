@@ -88,7 +88,10 @@ class EasyPodcastAPI:
         return self._handle(r)
 
     def _post_multipart(self, url, data, audio_path=None, image_path=None):
-        form_data = {k: str(v) for k, v in data.items() if v is not None and v != ""}
+        form_data = {
+            k: str(v) for k, v in data.items()
+            if v is not None and (v != "" or k == "explicit")
+        }
         with ExitStack() as stack:
             files = {}
             if audio_path:
